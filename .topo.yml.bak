@@ -1,0 +1,176 @@
+---
+name: dcf 
+prefix: ""
+
+topology:
+  kinds:
+    nokia_srlinux:
+      image: ghcr.io/nokia/srlinux:24.7.2
+    linux:
+      image: ghcr.io/srl-labs/network-multitool
+
+  nodes:
+    leaf1:
+      kind: nokia_srlinux
+      type: ixrd2l
+    leaf2:
+      kind: nokia_srlinux
+      type: ixrd2l
+    leaf3:
+      kind: nokia_srlinux
+      type: ixrd2l
+    spine1:
+      kind: nokia_srlinux
+      type: ixrd5
+    spine2:
+      kind: nokia_srlinux
+      type: ixrd5    
+    host-1-100:
+      kind: linux
+      exec:
+        - ip link add link eth1 eth1.100 type vlan id 100
+        - ip link set address 00:00:00:01:00:01 dev eth1.100
+        - ip add add 192.168.100.1/24 dev eth1.100
+        - ip link set eth1.100 up
+        - route add default gw 192.168.100.254 eth1.100
+    host-1-101:
+      kind: linux
+      exec:
+        - ip link add link eth1 eth1.101 type vlan id 101
+        - ip link set address 00:00:00:01:01:01 dev eth1.101
+        - ip add add 192.168.101.1/24 dev eth1.101
+        - ip link set eth1.101 up
+        - route add default gw 192.168.101.254 eth1.101
+    host-1-103:
+      kind: linux
+      exec:
+        #- ip link add link eth1 eth1.103 type vlan id 103
+        - ip link set address 00:00:00:03:01:1 dev eth1
+        - ip add add 192.168.103.1/24 dev eth1
+       # - ip link set eth1.103 up
+        - route add default gw 192.168.103.254 eth1
+    host-12-100:
+      kind: linux
+      image: ubuntu:latest
+      exec:
+        - ip link add bond0 type bond
+        - ip link set bond0 type bond mode 802.3ad
+        - ip link set address 00:00:00:12:00:01 dev bond0
+        - ip link add link bond0 name bond0.100 type vlan id 100
+        - ip addr add 192.168.100.12/24 dev bond0.100
+        - ip link add link bond0 name bond0.101 type vlan id 101
+        - ip addr add 192.168.101.12/24 dev bond0.101
+        - ip link set eth1 master bond0
+        - ip link set eth2 master bond0
+        - ip link set bond0 up
+        - ip link set eth1 up
+        - ip link set eth2 up
+    host-2-100:
+      kind: linux
+      exec:
+        - ip link add link eth1 eth1.100 type vlan id 100
+        - ip link set address 00:00:00:01:00:02 dev eth1.100
+        - ip add add 192.168.100.2/24 dev eth1.100
+        - ip link set eth1.100 up
+        - route add default gw 192.168.100.254 eth1.100
+    host-2-101:
+      kind: linux
+      exec:
+        - ip link add link eth1 eth1.101 type vlan id 101
+        - ip link set address 00:00:00:01:01:02 dev eth1.101
+        - ip add add 192.168.101.2/24 dev eth1.101
+        - ip link set eth1.101 up
+        - route add default gw 192.168.101.254 eth1.101
+    host-2-103:
+      kind: linux
+      exec:
+        #- ip link add link eth1 eth1.103 type vlan id 103
+        - ip link set address 00:00:00:03:01:02 dev eth1
+        - ip add add 192.168.103.2/24 dev eth1
+        # - ip link set eth1.103 up
+        - route add default gw 192.168.103.254 eth1
+    host-3-100:
+      kind: linux
+      exec:
+        - ip link add link eth1 eth1.100 type vlan id 100
+        - ip link set address 00:00:00:01:00:03 dev eth1.100
+        - ip add add 192.168.100.3/24 dev eth1.100
+        - ip link set eth1.100 up
+        - route add default gw 192.168.100.254 eth1.100
+    host-3-101:
+      kind: linux
+      exec:
+        - ip link add link eth1 eth1.101 type vlan id 101
+        - ip link set address 00:00:00:01:01:03 dev eth1.101
+        - ip add add 192.168.101.3/24 dev eth1.101
+        - ip link set eth1.101 up
+        - route add default gw 192.168.101.254 eth1.101
+    host-3-1:
+      kind: linux
+      image: ubuntu:latest
+      exec:
+        - ip link set address 00:00:00:01:03:03 dev eth1
+        - ip addr add 192.168.1.2/24 dev eth1
+        - route add default gw 192.168.1.254 eth1
+    host-1-1:
+      kind: linux
+      image: quay.io/frrouting/frr:9.1.0
+      binds:
+        - config/host-1-1:/etc/frr
+      exec:
+       - ip route replace 0/0 via 192.168.11.0
+      #   - ip link set address 00:00:00:01:00:12 dev eth1
+      #   - ip link set address 00:00:00:01:01:12 dev eth1
+      #   - ip addr add 192.168.11.1/31 dev eth1
+      #   - ip addr add 192.168.12.1/31 dev eth2
+      #   - ip link set eth1 up
+      #   - ip link set eth2 up
+    # host-1-1:
+    #   kind: linux
+    #   image: frrouting/frr:latest
+    #   exec:
+    #     - ip link set address 00:00:00:01:00:12 dev eth1
+    #     - ip link set address 00:00:00:01:01:12 dev eth1
+    #     - ip addr add 192.168.11.1/31 dev eth1
+    #     - ip addr add 192.168.12.1/31 dev eth2
+    #     - ip link set eth1 up
+    #     - ip link set eth2 up
+    # graphite:
+    #   kind: linux
+    #   image: netreplica/graphite
+    #   env:
+    #     HOST_CONNECTION: ${SSH_CONNECTION}
+    #   binds:
+    #     - __clabDir__/topology-data.json:/htdocs/default/default.json:ro
+    #     - __clabDir__/ansible-inventory.yml:/htdocs/lab/default/ansible-inventory.yml:ro
+    #   ports:
+    #     - 8080:80
+    #   exec:
+    #     - sh -c 'graphite_motd.sh 8080'
+    #   labels:
+    #     graph-hide: yes
+  links:
+    # inter-switch links
+    - endpoints: ["leaf1:e1-1", "spine1:e1-1"]
+    - endpoints: ["leaf2:e1-1", "spine1:e1-2"]
+    - endpoints: ["leaf3:e1-1", "spine1:e1-3"]
+    - endpoints: ["leaf1:e1-2", "spine2:e1-1"]
+    - endpoints: ["leaf2:e1-2", "spine2:e1-2"]
+    - endpoints: ["leaf3:e1-2", "spine2:e1-3"]
+    # client links
+    - endpoints: ["host-1-100:eth1", "leaf1:e1-10"]
+    - endpoints: ["host-1-101:eth1", "leaf1:e1-11"]
+    - endpoints: ["host-1-103:eth1", "leaf1:e1-9"]
+    - endpoints: ["host-12-100:eth1", "leaf1:e1-12"]
+    - endpoints: ["host-12-100:eth2", "leaf2:e1-12"]
+    - endpoints: ["host-2-100:eth1", "leaf2:e1-10"]
+    - endpoints: ["host-2-101:eth1", "leaf2:e1-11"]
+    - endpoints: ["host-2-103:eth1", "leaf2:e1-9"]
+    - endpoints: ["host-3-100:eth1", "leaf3:e1-10"]
+    - endpoints: ["host-3-101:eth1", "leaf3:e1-11"]
+    - endpoints: ["host-3-1:eth1", "leaf3:e1-21"]
+    - endpoints: ["host-1-1:eth1", "leaf1:e1-21"]
+    - endpoints: ["host-1-1:eth2", "leaf2:e1-21"]
+    
+
+
